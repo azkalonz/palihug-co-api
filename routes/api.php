@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Route;
 Route::get("/test",function(){
     return ["test"=>123];
 });
+Route::post("/chat/send",function(Request $request){
+    return $request;
+});
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });

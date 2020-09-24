@@ -14,6 +14,7 @@ return [
     */
 
     'name' => env('APP_NAME', 'Laravel'),
+    'socket_url' => env('SOCKET_URL', 'http://socket.palihug.co/'),
 
     /*
     |--------------------------------------------------------------------------

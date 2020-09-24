@@ -2,7 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Hook;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -13,9 +13,8 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-Route::get("/test",function(){
-    return ["test"=>123];
-});
+Route::post("/hook/notifications",[Hook::class,"notifications"]);
+
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });

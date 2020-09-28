@@ -22,7 +22,4 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::post("/register", [AuthController::class, "register"]);
 Route::post("/login", [AuthController::class, "login"]);
-
-Route::group(["middleware" => "auth.jwt"], function () {
-    Route::post("/hook/notifications", [Hook::class, "notifications"]);
-});
+Route::post("/hook/notifications", [Hook::class, "notifications"]);

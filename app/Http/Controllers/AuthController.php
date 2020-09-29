@@ -6,12 +6,14 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use \Validator;
+use App\Socket\Socket;
+use App\PhpMailer\EmailTemplate;
 
 class AuthController extends Controller
 {   
-    public function generateKey() {
-        $str = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        $randStr = substr(str_shuffle($str), 0, 50);
+    public function generateKey($str = '1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', $length = 50) {
+        $randStr = substr(str_shuffle($str), 0, $length);
         return $randStr;
     }
 
@@ -22,17 +24,16 @@ class AuthController extends Controller
         
         if($user = User::where("user_token", "=", $request->user_token)->first()) {
             $time = explode('_', $request->user_token);
-            if(date('U') - (int)$time[0] > 3600) {
-                $token = date('U').'_'.$this->generateKey().'_'.$user['user_id'];
-                $user['user_token'] = $token;
-                $user['user_token_updated_at'] = date('H:i:s');
-                User::where('user_email',$request->user_email)->update(['user_token'=>$token]);
-            }
-            
+            // if(date('U') - (int)$time[0] > 10) {
+            //     $token = date('U').'_'.$this->generateKey().'_'.$user['user_id'];
+            //     $user['user_token'] = $token;
+            //     $user['user_token_updated_at'] = date('H:i:s');
+            //     User::where('user_email',$request->user_email)->update(['user_token'=>$token]);
+            // }
             return $isJson ? response()->json($user) : $user;
         } else {
-            $err = ["message" => "Invalid token",
-            "status" => false];
+            $err = '["message" => "Invalid token",
+            "status" => false]';
             return $isJson ? response()->json($err) : $err;
         }
     }
@@ -54,6 +55,12 @@ class AuthController extends Controller
         }
     }
 
+    public function generateAuthToken($user_id,$user_email){
+        $token = date('U').'_'.$this->generateKey().'_'.$user_id;
+        User::where('user_email',$user_email)->update(['user_token'=>$token]);
+        return $token;
+    }
+
     public function login(Request $request)
     {
         if(!$request->user_token) {
@@ -69,10 +76,24 @@ class AuthController extends Controller
                         "status" => false,
                     ]);
                 } else {
-                    $token = date('U').'_'.$this->generateKey().'_'.$user['user_id'];
-                    $user['user_token'] = $token;
-                    User::where('user_email',$request->user_email)->update(['user_token'=>$token]);
-                    return response()->json($user);
+                    $mesage = '';
+                    if($user['user_status'] == 'Unverified') {
+                        $message = "Please verify your account!";
+                    } elseif($user['user_status'] == 'Suspended') {
+                        $message = "You're account is suspended!";
+                    } elseif($user['user_status'] == 'Banned') {
+                        $message = "You're account is banned!";
+                    }else {
+                        $token = $this->generateAuthToken($user['user_id'],$user['user_email']);
+                        $user['user_token'] = $token;
+                        return response()->json($user);
+                    }
+                    return response()->json([
+                        "message" => $message,
+                        "status" => false,
+                        "error" => "UNVERIFIED",
+                    ]);
+
                 }
             } else {
                 return response()->json([
@@ -85,30 +106,72 @@ class AuthController extends Controller
         }
     }
 
+    public function validateUser(Request $request, $args){
+        $validator = Validator::make($request->all(),$args);
+        return $validator;
+    }
+
     public function register(Request $request)
     {
-        $this->validate($request, [
+        $validateUser = $this->validateUser($request, [
             "user_fname" => "required|string",
             "user_lname" => "required|string",
             "user_email" => "required|email|unique:users",
             "user_password" => "required|string|min:6|max:10",
         ]);
-        $user = new User();
-        $user->user_fname = $request->user_fname;
-        $user->user_lname = $request->user_lname;
-        $user->user_email = $request->user_email;
-        $user->user_password = password_hash($request->user_password, PASSWORD_DEFAULT);
-        $user->save();
+        if($validateUser->fails()){
+            return $validateUser->messages();
+        } else {
+            $user = new User();
+            $user->user_fname = $request->user_fname;
+            $user->user_lname = $request->user_lname;
+            $user->user_email = $request->user_email;
+            $user->user_password = password_hash($request->user_password, PASSWORD_DEFAULT);
+            $user->user_status = 'Unverified';
+            $user->is_first_logon = 0;
+            $user->user_token = $this->generateKey('0123456789', 4);
+            $user->save();
 
-        if ($this->loginAfterSignup) {
-            $this->login($request);
+            Socket::broadcast('OTP', ['user_email' => $user->user_email, 'duration' => 120]);
+
+            $otp_email = new EmailTemplate(false);
+            $otp_email = $otp_email->OTPVerificationTemplate($user->user_email,$user->user_token);
+            if($otp_email['status']){
+                return response()->json([
+                    "status" => true,
+                    "user" => $user,
+                ]); 
+            } else {
+                return response()->json($otp_email);
+            }
         }
-
-        return response()->json([
-            "status" => true,
-            "user" => $user,
-        ]);
     }
+
+    public function verifyOTP(Request $request) {
+        $validateUser = $this->validateUser($request, [
+            "user_token" => "required|string",
+            "user_email" => "required|email",
+        ]);
+        if($validateUser->fails()){
+            return $validateUser->messages();
+        } else {
+            if(!$user = User::where("user_email", '=', $request->user_email)->where("user_token", "=", (int)$request->user_token)->first()) {
+                return response()->json([
+                    "message" => "Incorrect Pin",
+                    "status" => false,
+                ]);
+            } else {
+                User::where('user_email',$request->user_email)->update(['user_status'=>'Verified','is_first_logon'=>'1']);
+                $token = $this->generateAuthToken($user['user_id'],$user['user_email']);
+                $request->user_token = $token;
+                return $this->authMiddleWare($request, function($request, $cred) {
+                    $param = $request->all();
+                    return $cred;
+                });
+            }
+        }
+    }
+
     public function logout(Request $request)
     {
         $this->validate($request, [

@@ -16,7 +16,6 @@ class SMTPCon {
             $mail->Port       = 587;                                    
             $mail->CharSet    = "UTF-8";                              
             $this->mailer = $mail;   
-            print_r($mail);
          } catch (Exception $e) {
             $this->mailer = null;
          }

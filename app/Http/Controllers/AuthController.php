@@ -9,6 +9,7 @@ use Tymon\JWTAuth\Exceptions\JWTException;
 use \Validator;
 use App\Socket\Socket;
 use App\PhpMailer\EmailTemplate;
+use App\Rules\NameCheck;
 
 class AuthController extends Controller
 {   
@@ -18,10 +19,13 @@ class AuthController extends Controller
     }
 
     public function auth(Request $request, $isJson = true) {
-        $this->validate($request,[
-            "user_token" => "required",
-        ]);
-        
+        if(empty($_GET['token'])){
+            $this->validate($request,[
+                "user_token" => "required",
+            ]);
+        } else {
+            $request->user_token = $_GET['token'];
+        }
         if($user = User::where("user_token", "=", $request->user_token)->first()) {
             $time = explode('_', $request->user_token);
             // if(date('U') - (int)$time[0] > 10) {
@@ -83,7 +87,7 @@ class AuthController extends Controller
                         $message = "You're account is suspended!";
                     } elseif($user['user_status'] == 'Banned') {
                         $message = "You're account is banned!";
-                    }else {
+                    } else {
                         $token = $this->generateAuthToken($user['user_id'],$user['user_email']);
                         $user['user_token'] = $token;
                         return response()->json($user);
@@ -92,6 +96,7 @@ class AuthController extends Controller
                         "message" => $message,
                         "status" => false,
                         "error" => "UNVERIFIED",
+                        "user_token" => ($user['user_token'] * 1234)
                     ]);
 
                 }
@@ -114,10 +119,11 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validateUser = $this->validateUser($request, [
-            "user_fname" => "required|string",
-            "user_lname" => "required|string",
-            "user_email" => "required|email|unique:users",
-            "user_password" => "required|string|min:6|max:10",
+            "user_fname" => ['required', 'string', 'min:2', new NameCheck()],
+            "user_lname" => ['required', 'string', 'min:2', new NameCheck()],
+            "user_email" => ['required', 'email', 'unique:users'],
+            "user_password" => ['required', 'string', 'min:6'],
+            "user_agree" => ['accepted']
         ]);
         if($validateUser->fails()){
             return $validateUser->messages();
@@ -128,11 +134,12 @@ class AuthController extends Controller
             $user->user_email = $request->user_email;
             $user->user_password = password_hash($request->user_password, PASSWORD_DEFAULT);
             $user->user_status = 'Unverified';
+            $user->user_agree = '1';
             $user->is_first_logon = 0;
             $user->user_token = $this->generateKey('0123456789', 4);
             $user->save();
 
-            Socket::broadcast('OTP', ['user_email' => $user->user_email, 'duration' => 120]);
+            Socket::broadcast('otp', ['user_email' => $user->user_email,'duration'=>120000]);
 
             $otp_email = new EmailTemplate(false);
             $otp_email = $otp_email->OTPVerificationTemplate($user->user_email,$user->user_token);
@@ -144,6 +151,24 @@ class AuthController extends Controller
             } else {
                 return response()->json($otp_email);
             }
+        }
+    }
+
+    public function resendOTP(Request $request) {
+        $token = $this->generateKey('0123456789', 4);
+        User::where('user_email',$request->user_email)->update(['user_token'=>$token]);
+        $user = User::where("user_email", "=", $request->user_email)->first();
+
+        $otp_email = new EmailTemplate(false);
+        $otp_email = $otp_email->OTPVerificationTemplate($request->user_email,$user->user_token);
+        if($otp_email['status']){
+            Socket::broadcast('otp', ['user_email' => $user->user_email,'duration'=>120000]);
+            return response()->json([
+                "status" => true,
+                "user" => $user,
+            ]); 
+        } else {
+            return response()->json($otp_email);
         }
     }
 

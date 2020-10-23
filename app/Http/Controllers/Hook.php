@@ -12,20 +12,19 @@ class Hook extends Controller
 {
     public function notifications(Request $request)
     {
-        $auth = new AuthController;
-        
-        return $auth->authMiddleWare($request, function($request, $cred) {
+
+        return $this->authenticate()->http($request, function($request, $cred) {
             $param = $request->all();
             Socket::broadcast("notification", $param);
             return $param;
-        }); 
+        });
     }
 
     public static function otp(Request $request)
     {
         $auth = new AuthController;
-        
-        return $auth->authMiddleWare($request, function($request, $cred) {
+
+        return $auth->http($request, function($request, $cred) {
             $user = User::where('user_email',$request->user_email)->where('user_token',$request->user_token)->first();
             $user = [
                 "duration" => 120000,
@@ -34,6 +33,6 @@ class Hook extends Controller
             ];
             Socket::broadcast("otp", $user);
             return $user;
-        }); 
+        });
     }
 }

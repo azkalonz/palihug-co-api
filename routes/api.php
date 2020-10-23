@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Hook;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\Hook;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\UserController;
+use App\WC\Api;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\WC\Api;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,7 +23,7 @@ use App\WC\Api;
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
-Route::get("/test", function(Request $request){
+Route::get("/test", function (Request $request) {
     return Api::wp('wp/v2')->get("users/me");
 });
 Route::post("/register", [AuthController::class, "register"]);
@@ -32,3 +34,5 @@ Route::post("/hook/notifications", [Hook::class, "notifications"]);
 Route::post("/hook/otp", [Hook::class, "otp"]);
 Route::get("/chat", [ChatController::class, "getConvo"]);
 Route::post("/chat", [ChatController::class, "sendMessage"]);
+Route::get('/services', [ServiceController::class, "all"]);
+Route::post('/first-login', [UserController::class, "firstLogin"]);

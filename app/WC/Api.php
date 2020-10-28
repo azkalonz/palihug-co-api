@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace App\WC;
 
 use Automattic\WooCommerce\Client;
@@ -6,9 +6,9 @@ use Automattic\WooCommerce\Client;
 class Api {
     public static function wp($version="wc/v3"){
         return new Client(
-            'http://palihugco.bienz.tech/', 
-            'ck_cb16d705fa774d3073076d3a65b1878bc0c14279', 
-            'cs_6a1a53e180dafc36ffa0ff0cc875cadc45a9ab0a',
+            config('app.wp_url'),
+            'ck_981d613089e9e812f01107c1a46d5acf393a9391',
+            'cs_e466e84801c7544dea50872663eca4bc187d2a76',
             [
                 'version' => $version,// wp/v2 wcfmmp/v1 wc/v3
             ]

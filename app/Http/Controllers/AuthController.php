@@ -96,11 +96,14 @@ class AuthController extends Controller
                         $user['user_token'] = $token;
                         return response()->json($user);
                     }
+                    $fake_token =  ($user['user_token'] * 1234);
+                    $user->user_token = $fake_token;
                     return response()->json([
                         "message" => $message,
                         "status" => false,
                         "error" => "UNVERIFIED",
-                        "user_token" => ($user['user_token'] * 1234),
+                        "user_token" => $fake_token,
+                        "user" => $user
                     ]);
 
                 }
@@ -145,10 +148,7 @@ class AuthController extends Controller
             $user->save();
 
             Socket::broadcast('otp', ['user_email' => $user->user_email, 'duration' => 120000]);
-            return response()->json([
-                "status" => true,
-                "user" => $user,
-            ]);
+
             $otp_email = new EmailTemplate(false);
             $otp_email = $otp_email->OTPVerificationTemplate($user->user_email, $user->user_token);
             if ($otp_email['status']) {

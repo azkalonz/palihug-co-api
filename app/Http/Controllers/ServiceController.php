@@ -13,7 +13,7 @@ class ServiceController extends Controller
         } else {
             $service = DB::table('services')
                 ->where("service_id", "=", $service_id)->first();
-            $service->merchants = DB::select("SELECT * FROM merchants WHERE merch_wp_id IN (SELECT merch_id FROM merchant_services WHERE service_id = 1)");
+            $service->merchants = DB::select("SELECT * FROM merchants WHERE merch_wp_id IN (SELECT merch_id FROM merchant_services WHERE service_id = $service_id)");
             return response()->json($service);
         }
     }

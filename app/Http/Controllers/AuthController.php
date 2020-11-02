@@ -7,6 +7,7 @@ use App\PhpMailer\EmailTemplate;
 use App\Rules\NameCheck;
 use App\Socket\Socket;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use \Validator;
@@ -36,6 +37,11 @@ class AuthController extends Controller
             //     $user['user_token_updated_at'] = date('H:i:s');
             //     User::where('user_email',$request->user_email)->update(['user_token'=>$token]);
             // }
+            $user->address = DB::select('select * from address where user_id = ?', [$user->user_id]);
+            $user->default_address = DB::select('select * from address where user_id = ? and is_default = 1', [$user->user_id]);
+            if ($user->default_address) {
+                $user->default_address = $user->default_address[0];
+            }
             return $isJson ? response()->json($user) : $user;
         } else {
             $err = '["message" => "Invalid token",
@@ -78,6 +84,12 @@ class AuthController extends Controller
             ]);
 
             if ($user = User::where("user_email", "=", $request->user_email)->first()) {
+                $user->address = DB::select('select * from address where user_id = ?', [$request->user_email]);
+                $user->default_address = DB::select('select * from address where user_id = ? and is_default = 1', [$request->user_email]);
+                if ($user->default_address) {
+                    $user->default_address = $user->default_address[0];
+                }
+
                 if (!password_verify($request->user_password, $user['user_password'])) {
                     return response()->json([
                         "message" => "Incorrect Password",
@@ -96,14 +108,14 @@ class AuthController extends Controller
                         $user['user_token'] = $token;
                         return response()->json($user);
                     }
-                    $fake_token =  ($user['user_token'] * 1234);
+                    $fake_token = ($user['user_token'] * 1234);
                     $user->user_token = $fake_token;
                     return response()->json([
                         "message" => $message,
                         "status" => false,
                         "error" => "UNVERIFIED",
                         "user_token" => $fake_token,
-                        "user" => $user
+                        "user" => $user,
                     ]);
 
                 }

@@ -33,6 +33,8 @@ Route::get("/chat", [ChatController::class, "getConvo"]);
 Route::post("/chat", [ChatController::class, "sendMessage"]);
 Route::get('/services/{service_id?}', [ServiceController::class, "all"]);
 Route::post('/first-login', [UserController::class, "firstLogin"]);
+Route::post('/add-address', [UserController::class, "addAddress"]);
+Route::post('/add-address/default', [UserController::class, "defaultAddress"]);
 
 Route::get("/merchants/{merch_id?}", [MerchantController::class, "all"]);
 Route::get("/merchants/{merch_id?}/data", [MerchantController::class, "products"]);

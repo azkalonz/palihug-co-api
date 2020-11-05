@@ -55,6 +55,11 @@ class MerchantController extends Controller
                 "products" => $products,
             ]);
         }
-
     }
+
+    public function productArchive(Request $request)
+    {
+        return Api::wp("wc/v3")->get("products", $request->all());
+    }
+
 }

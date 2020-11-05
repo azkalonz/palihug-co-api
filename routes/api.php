@@ -38,3 +38,5 @@ Route::post('/add-address/default', [UserController::class, "defaultAddress"]);
 
 Route::get("/merchants/{merch_id?}", [MerchantController::class, "all"]);
 Route::get("/merchants/{merch_id?}/data", [MerchantController::class, "products"]);
+Route::get('/products', [MerchantController::class, "productArchive"]);
+Route::post('/products', [MerchantController::class, "productArchive"]);

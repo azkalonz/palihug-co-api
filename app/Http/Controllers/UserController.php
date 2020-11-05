@@ -12,12 +12,13 @@ class UserController extends Controller
     public function addAddress(Request $request)
     {
         $validation = Validator::make($request->all(), [
-            "street" => "required",
             "city" => "required",
             "barangay" => "required",
             "province" => "required",
             "zip" => "required|numeric",
             "user_id" => "required",
+            "name" => "required",
+            "contact" => "required",
         ]);
         if ($validation->fails()) {
             return $validation->messages();
@@ -35,14 +36,17 @@ class UserController extends Controller
                 $address->province = $request->province;
                 $address->zip = $request->zip;
                 $address->user_id = $request->user_id;
+                $address->name = $request->name;
+                $address->contact = $request->contact;
                 $address->is_default = $request->is_default ? $request->is_default : 0;
+                $address->house_number = $request->house_number;
                 $address->save();
                 return response()->json([
                     "success" => true,
                     "address" => Address::where("user_id", "=", $request->user_id)->orderBy('add_id', 'desc')->first(),
                 ]);
             } else {
-                DB::update('update address set street = ?, city = ?, barangay = ?, province = ?, zip = ?, is_default = ? where add_id = ?',
+                DB::update('update address set street = ?, city = ?, barangay = ?, province = ?, zip = ?, is_default = ?, name = ?, contact = ?, house_number = ? where add_id = ?',
                     [
                         $request->street,
                         $request->city,
@@ -50,8 +54,10 @@ class UserController extends Controller
                         $request->province,
                         $request->zip,
                         $request->is_default || 0,
+                        $request->name,
+                        $request->contact,
+                        $request->house_number,
                         $request->add_id,
-
                     ]);
                 return response()->json([
                     "success" => true,

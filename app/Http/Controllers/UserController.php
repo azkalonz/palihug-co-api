@@ -26,27 +26,19 @@ class UserController extends Controller
 
         return $this->authenticate()->http($request, function ($request, $cred) {
             if ($request->is_default) {
-                DB::update('update address set is_default = 0 where user_id = ?', [$request->user_id]);
+                Address::where("user_id", "=", $request->user_id)->update(["is_default" => 0]);
             }
-            if (!$request->add_id) {
-                $address = new Address;
-                $address->city = $request->city;
-                $address->street = $request->street;
-                $address->barangay = $request->barangay;
-                $address->province = $request->province;
-                $address->zip = $request->zip;
-                $address->user_id = $request->user_id;
-                $address->name = $request->name;
-                $address->contact = $request->contact;
-                $address->is_default = $request->is_default ? $request->is_default : 0;
-                $address->house_number = $request->house_number;
-                $address->save();
+            $address = Address::where("add_id", "=", $request->add_id);
+            $address->timestamps = false;
+            if (!$address->get()->last()) {
+                $address = Address::create($request->all());
                 return response()->json([
                     "success" => true,
-                    "address" => Address::where("user_id", "=", $request->user_id)->orderBy('add_id', 'desc')->first(),
+                    "address" => $address->get()->last(),
                 ]);
             } else {
-                DB::update('update address set street = ?, city = ?, barangay = ?, province = ?, zip = ?, is_default = ?, name = ?, contact = ?, house_number = ? where add_id = ?',
+                // $address->update($request->except(['user_token']));
+                DB::update('update addresses set street = ?, city = ?, barangay = ?, province = ?, zip = ?, is_default = ?, name = ?, contact = ?, house_number = ? where add_id = ?',
                     [
                         $request->street,
                         $request->city,
@@ -61,7 +53,7 @@ class UserController extends Controller
                     ]);
                 return response()->json([
                     "success" => true,
-                    "address" => Address::where("add_id", "=", $request->add_id)->first(),
+                    "address" => $address->get()->last(),
                 ]);
 
             }
@@ -79,8 +71,8 @@ class UserController extends Controller
 
         return $this->authenticate()->http($request, function ($request, $cred) {
             if ($request->add_id) {
-                DB::update('update address set is_default = 0');
-                DB::update('update address set is_default = 1 where add_id = ?', [$request->add_id]);
+                DB::update('update addresses set is_default = 0');
+                DB::update('update addresses set is_default = 1 where add_id = ?', [$request->add_id]);
                 return response()->json([
                     "success" => true,
                     "address" => Address::where("add_id", "=", $request->add_id)->first(),
@@ -101,7 +93,7 @@ class UserController extends Controller
         return $this->authenticate()->http($request, function ($request, $cred) {
             DB::update('update users set is_first_logon = 0 where user_email = ?', [$request->user_email]);
             $user = DB::select('select * from users where user_email = ?', [$request->user_email])[0];
-            $user->address = DB::select('select * from address where user_id = ?', [$request->user_email]);
+            $user->addresses = DB::select('select * from addresses where user_id = ?', [$request->user_email]);
             return response()->json($user);
         });
     }

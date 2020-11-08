@@ -37,8 +37,8 @@ class AuthController extends Controller
             //     $user['user_token_updated_at'] = date('H:i:s');
             //     User::where('user_email',$request->user_email)->update(['user_token'=>$token]);
             // }
-            $user->address = DB::select('select * from address where user_id = ?', [$user->user_id]);
-            $user->default_address = DB::select('select * from address where user_id = ? and is_default = 1', [$user->user_id]);
+            $user->address = DB::select('select * from addresses where user_id = ?', [$user->user_id]);
+            $user->default_address = DB::select('select * from addresses where user_id = ? and is_default = 1', [$user->user_id]);
             if ($user->default_address) {
                 $user->default_address = $user->default_address[0];
             }
@@ -84,8 +84,8 @@ class AuthController extends Controller
             ]);
 
             if ($user = User::where("user_email", "=", $request->user_email)->first()) {
-                $user->address = DB::select('select * from address where user_id = ?', [$request->user_email]);
-                $user->default_address = DB::select('select * from address where user_id = ? and is_default = 1', [$request->user_email]);
+                $user->address = DB::select('select * from addresses where user_id = ?', [$user->user_id]);
+                $user->default_address = DB::select('select * from addresses where user_id = ? and is_default = 1', [$user->user_id]);
                 if ($user->default_address) {
                     $user->default_address = $user->default_address[0];
                 }

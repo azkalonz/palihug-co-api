@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Chat extends Model
+class Cart extends Model
 {
     use HasFactory;
-    protected $table = "chats";
+    protected $table = "cart";
 
     protected $fillable = [
-        'trans_id', 'receiver_id', 'sender_id'
+        'cart_id', 'meta', 'user_id', 'total_items', 'total_amount',
     ];
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Hook;
 use App\Http\Controllers\MerchantController;
@@ -40,3 +41,7 @@ Route::get("/merchants/{merch_id?}", [MerchantController::class, "all"]);
 Route::get("/merchants/{merch_id?}/data", [MerchantController::class, "products"]);
 Route::get('/products', [MerchantController::class, "productArchive"]);
 Route::post('/products', [MerchantController::class, "productArchive"]);
+
+Route::get("/cart", [CartController::class, "getCart"]);
+Route::post("/cart", [CartController::class, "setCart"]);
+Route::delete("/cart", [CartController::class, "removeCart"]);

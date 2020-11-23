@@ -42,6 +42,7 @@ class AuthController extends Controller
             if ($user->default_address) {
                 $user->default_address = $user->default_address[0];
             }
+            $user->user_type = DB::select("select * from user_types where user_type_id = ?",[$user->user_type])[0];
             return $isJson ? response()->json($user) : $user;
         } else {
             $err = '["message" => "Invalid token",
@@ -89,7 +90,7 @@ class AuthController extends Controller
                 if ($user->default_address) {
                     $user->default_address = $user->default_address[0];
                 }
-
+                $user->user_type = DB::select("select * from user_types where user_type_id = ?",[$user->user_type])[0];
                 if (!password_verify($request->user_password, $user['user_password'])) {
                     return response()->json([
                         "message" => "Incorrect Password",

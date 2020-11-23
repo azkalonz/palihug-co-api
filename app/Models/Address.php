@@ -11,6 +11,6 @@ class Address extends Model
     public $timestamps = false;
     protected $table = "addresses";
     protected $fillable = [
-        'city', 'street', 'province', 'country', 'house_number', 'is_default', 'name', 'contact', 'user_id', 'barangay', 'zip',
+        'city', 'street', 'province', 'country', 'house_number', 'is_default', 'name', 'contact', 'user_id', 'barangay', 'zip',"lat","lng"
     ];
 }

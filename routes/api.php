@@ -5,6 +5,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Hook;
 use App\Http\Controllers\MerchantController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
@@ -45,3 +46,9 @@ Route::post('/products', [MerchantController::class, "productArchive"]);
 Route::get("/cart", [CartController::class, "getCart"]);
 Route::post("/cart", [CartController::class, "setCart"]);
 Route::delete("/cart", [CartController::class, "removeCart"]);
+
+Route::post("/checkout", [OrderController::class, "createOrder"]);
+
+Route::get("/orders/{user_type}", [OrderController::class, "getOrder"]);
+Route::get("/order/{order_id}", [OrderController::class, "orderInfo"]);
+

@@ -164,6 +164,8 @@ class AuthController extends Controller
 
             $otp_email = new EmailTemplate(false);
             $otp_email = $otp_email->OTPVerificationTemplate($user->user_email, $user->user_token);
+            $user->user_type = DB::select("select * from user_types where user_type_id = ?",[$user->user_type])[0];
+
             if ($otp_email['status']) {
                 return response()->json([
                     "status" => true,

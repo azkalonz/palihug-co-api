@@ -53,7 +53,17 @@ class OrderController extends Controller
                 $order = Order::where("order_id","=",$request->order_id)->get()->first();
                 $order_details = OrderDetail::where("order_id","=",$request->order_id)->get();
                 $order->products = $order_details;
-                return response()->json($order);
+                $user_type = $cred->user_type->name;
+                if($user_type == "driver"){
+                    return response()->json($order);
+                } else if($cred->user_id == $order->consumer_user_id){
+                    return response()->json($order);
+                } else {
+                    return response()->json([
+                        "error"=>true,
+                        "message"=>"Unauthorized access"
+                    ]);
+                }
             });
         }
     }

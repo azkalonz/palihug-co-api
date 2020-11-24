@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Socket\Socket;
 use App\Models\Chat;
-use App\Http\Controllers\AuthController;
+use Illuminate\Support\Facades\DB;
+use \Validator;
 
 class ChatController extends Controller
 {
     public function getConvo(Request $request) {
-        if(empty($_GET['trans_id']) || empty($_GET['receiver_id']) || empty($_GET['sender_id'])){
+        if(empty($_GET['order_id'])){
             return response()->json([
                 'status'=>false,
                 'message'=>'Invalid parameters'
@@ -18,39 +19,43 @@ class ChatController extends Controller
         }
 
         return $this->authenticate()->http($request, function($request, $cred) {
-            $convo = Chat::where("trans_id","=",$_GET['trans_id'])->where(function ($query) {
-                $query->where('receiver_id', '=', $_GET['receiver_id'])
-                      ->orWhere('receiver_id', '=', $_GET['sender_id']);
-            })->where(function ($query) {
-                $query->where('sender_id', '=', $_GET['sender_id'])
-                      ->orWhere('sender_id', '=', $_GET['receiver_id']);
-            })->get();
+            $convo = DB::select("select * from chats where order_id = ?",[$_GET['order_id']]);
+            $chat = [];
+            $chat['messages'] = $convo;
+            if(sizeof($convo)){
+                $p1 = $convo[0]->sender_id;
+                $p2 = $convo[0]->receiver_id;
+                $chat['participants'] = DB::select("select * from users where user_id = ? or user_id = ?",[$p1,$p2]);
+            }
 
-            return $convo;
+            // $convo = Chat::where("order_id","=",$_GET['order_id'])->where(function ($query) {
+            //     $query->where('receiver_id', '=', $_GET['receiver_id'])
+            //           ->orWhere('receiver_id', '=', $_GET['sender_id']);
+            // })->where(function ($query) {
+            //     $query->where('sender_id', '=', $_GET['sender_id'])
+            //           ->orWhere('sender_id', '=', $_GET['receiver_id']);
+            // })->get();
+            return $chat;
         });
     }
 
     public function sendMessage(Request $request) {
-        request()->validate([
-            'trans_id' => ['required'],
+        $validation = Validator::make($request->all(), [
+            'order_id' => ['required'],
             'sender_id' => ['required'],
             'receiver_id' => ['required'],
-            'chat_message' => ['required'],
+            'chat_meta' => ['required'],
         ]);
+        if ($validation->fails()) {
+            return $validation->messages();
+        }
 
         return $this->authenticate()->http($request, function($request, $cred) {
-            $chat = new Chat();
-            $chat->trans_id = $request->trans_id;
-            $chat->receiver_id = $request->receiver_id;
-            $chat->sender_id = $request->sender_id;
-            $chat->chat_message = $request->chat_message;
-            $chat->chat_time = date('Y-m-d h:i:s');
-            $chat->save();
-
-            Socket::broadcast('chat', ['trans_id' => $chat->trans_id, 'receiver_id' => $chat->receiver_id, 'sender_id' => $chat->sender_id, 'chat_message' => $chat->chat_message, 'chat_time' => $chat->chat_time]);
+            $chat = Chat::create($request->except(["token"]));
+            Socket::broadcast('send:room:orders', $chat->toArray());
 
             return response()->json([
-                "status" => true
+                "message" => $chat
             ]);
         });
     }

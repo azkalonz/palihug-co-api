@@ -11,6 +11,6 @@ class Chat extends Model
     protected $table = "chats";
 
     protected $fillable = [
-        'trans_id', 'receiver_id', 'sender_id'
+        'order_id', 'receiver_id', 'sender_id', 'chat_meta'
     ];
 }

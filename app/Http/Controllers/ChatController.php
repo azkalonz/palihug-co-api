@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Socket\Socket;
 use App\Models\Chat;
+use App\Models\Order;
 use Illuminate\Support\Facades\DB;
 use \Validator;
 
@@ -22,11 +23,10 @@ class ChatController extends Controller
             $convo = DB::select("select * from chats where order_id = ?",[$_GET['order_id']]);
             $chat = [];
             $chat['messages'] = $convo;
-            if(sizeof($convo)){
-                $p1 = $convo[0]->sender_id;
-                $p2 = $convo[0]->receiver_id;
-                $chat['participants'] = DB::select("select * from users where user_id = ? or user_id = ?",[$p1,$p2]);
-            }
+            $order = Order::where("order_id","=",$_GET['order_id'])->get()->first();
+            $p1 = $order->consumer_user_id;
+            $p2 = $order->provider_user_id;
+            $chat['participants'] = DB::select("select * from users where user_id = ? or user_id = ?",[$p1,$p2]);
 
             // $convo = Chat::where("order_id","=",$_GET['order_id'])->where(function ($query) {
             //     $query->where('receiver_id', '=', $_GET['receiver_id'])

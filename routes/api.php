@@ -52,3 +52,5 @@ Route::post("/checkout", [OrderController::class, "createOrder"]);
 Route::get("/orders/{user_type}", [OrderController::class, "getOrder"]);
 Route::get("/order/{order_id}", [OrderController::class, "orderInfo"]);
 
+Route::post("/accept-order", [OrderController::class, "acceptOrder"]);
+

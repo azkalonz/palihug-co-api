@@ -26,7 +26,7 @@ class OrderController extends Controller
             $order = Order::where("order_id","=",$order->id)->get()->first();
             $order->success = true;
             $this->createOrderDetails($request,$order->order_id);
-            Socket::broadcast("new order",$order->toArray());
+            Socket::broadcast("order:new",$order->toArray());
             return $order;
         });
     }
@@ -44,6 +44,27 @@ class OrderController extends Controller
                 return Order::where("consumer_user_id","=",$cred->user_id)->get();
             else if($request->user_type == "driver")
                 return Order::where("provider_user_id","=",$cred->user_id)->orWhere("provider_user_id","=",null)->get();
+        });
+    }
+    public function acceptOrder(Request $request){
+        $validation = Validator::make($request->all(), [
+            "order_id" => "required",
+        ]);
+        if ($validation->fails()) {
+            return $validation->messages();
+        }
+        return $this->authenticate()->http($request, function($request,$cred){
+            $user_type = $cred->user_type->name;
+            if($user_type==='driver'){
+                $order = Order::where("order_id","=",$request->order_id);
+                $order->update([
+                    "provider_user_id"=>$cred->user_id,
+                    "status"=>"processing",
+                    "status_text"=>"Preparing your food",
+                    ]);
+                Socket::broadcast("order:update",$order->get()->first()->toArray());
+                return $order->get()->first();
+            }
         });
     }
     public function orderInfo(Request $request,$order_id=null){

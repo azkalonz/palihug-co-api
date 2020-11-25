@@ -54,3 +54,4 @@ Route::get("/order/{order_id}", [OrderController::class, "orderInfo"]);
 
 Route::post("/accept-order", [OrderController::class, "acceptOrder"]);
 
+Route::get("/notifications", [Hook::class, "getNotifications"]);

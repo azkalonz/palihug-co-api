@@ -6,17 +6,34 @@ use App\Socket\Socket;
 use Illuminate\Http\Request;
 use JWTAuth;
 use App\Http\Controllers\AuthController;
+use App\Models\Cart;
+use App\Models\Notification;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class Hook extends Controller
 {
-    public function notifications(Request $request)
+    public function notifications(Request $request, $params)
     {
+        return $this->authenticate()->http($request, function($request, $cred, $params) {
+            $notification = Notification::create($params);
+            Socket::broadcast("notifications:chat", $params);
+            return $params;
+        }, $params);
+    }
 
-        return $this->authenticate()->http($request, function($request, $cred) {
-            $param = $request->all();
-            Socket::broadcast("notification", $param);
-            return $param;
+    public function getNotifications(Request $request)
+    {
+        return $this->authenticate()->http($request, function ($request, $cred) {
+            if(!isset($request->count)){
+                $notification = DB::select("select concat(provider.user_fname,' ',provider.user_lname) as provider_name, notifications.* from notifications inner join users as provider on provider.user_id = notifications.provider_user_id where notifications.created_at in (select max(created_at) from notifications where consumer_user_id = ? and provider_user_id = provider.user_id)",[$cred->user_id]);
+                return $notification;
+            }
+            else 
+                return [
+                    "notifications"=>Notification::where("consumer_user_id", "=", $cred->user_id)->get()->count(),
+                    "cart"=>Cart::where("user_id","=",$cred->user_id)->get()->count()
+                ];
         });
     }
 

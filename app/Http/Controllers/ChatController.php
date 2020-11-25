@@ -53,7 +53,21 @@ class ChatController extends Controller
         return $this->authenticate()->http($request, function($request, $cred) {
             $chat = Chat::create($request->except(["token"]));
             Socket::broadcast('send:room:orders', $chat->toArray());
-
+            $decoded_message = json_decode($chat->chat_meta);
+            $msg_body = $decoded_message->message;
+            $this->hook()->notifications($request,[
+                "consumer_user_id" => $chat->receiver_id,
+                "provider_user_id" => $chat->sender_id,
+                "order_id" => $chat->order_id,
+                "notif_action" => json_encode([
+                    "pathname"=>"/chat/$chat->order_id"
+                ]),
+                "notif_meta"=>json_encode([
+                    "title" => "Message for order #$chat->order_id",
+                    "body" => $msg_body
+                ]),
+                "notif_type"=>"chat"
+            ]);
             return response()->json([
                 "message" => $chat
             ]);

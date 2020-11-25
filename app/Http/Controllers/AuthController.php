@@ -51,7 +51,7 @@ class AuthController extends Controller
         }
     }
 
-    public function http(Request $request, $callback)
+    public function http(Request $request, $callback, $params=[])
     {
         if ($callback == null) {
             return;
@@ -60,7 +60,10 @@ class AuthController extends Controller
         $cred = $this->auth($request, false);
 
         if (gettype($cred) == 'object') {
-            return $callback($request, $cred);
+            if(sizeof($params))
+                return $callback($request, $cred, $params);
+            else 
+                return $callback($request, $cred);
         } else {
             return response()->json([
                 "message" => "Invalid token",

@@ -15,4 +15,7 @@ class Controller extends BaseController
         $this->auth = new AuthController;
         return $this->auth;
     }
+    protected function hook(){
+        return new Hook();
+    }
 }

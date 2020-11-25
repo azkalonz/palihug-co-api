@@ -54,7 +54,11 @@ class ChatController extends Controller
             $chat = Chat::create($request->except(["token"]));
             Socket::broadcast('send:room:orders', $chat->toArray());
             $decoded_message = json_decode($chat->chat_meta);
-            $msg_body = $decoded_message->message;
+            if($decoded_message->type == 'text'){
+                $msg_body = $decoded_message->message;
+            } else if ($decoded_message->type == 'map'){
+                $msg_body = "Sent a location";
+            }
             $this->hook()->chat_notifications($request,[
                 "consumer_user_id" => $chat->receiver_id,
                 "provider_user_id" => $chat->sender_id,

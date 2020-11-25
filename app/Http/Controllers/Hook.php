@@ -35,7 +35,7 @@ class Hook extends Controller
             else 
                 return [
                     "notifications"=>Notification::where("consumer_user_id", "=", $cred->user_id)->where("viewed","=",0)->get()->count(),
-                    "cart"=>Cart::where("user_id","=",$cred->user_id)->get()->count()
+                    "cart"=>Cart::where("user_id","=",$cred->user_id)->get(["total_items"])->first()->toArray()['total_items']
                 ];
         });
     }

@@ -63,7 +63,11 @@ class OrderController extends Controller
                     "status_text"=>"Preparing your food",
                     ]);
                 Socket::broadcast("order:update",$order->get()->first()->toArray());
-                return $order->get()->first();
+                $order = $order->get()->first();
+                $order_details = OrderDetail::where("order_id","=",$request->order_id)->get();
+                $order->products = $order_details;
+
+                return $order;
             }
         });
     }

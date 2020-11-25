@@ -55,7 +55,7 @@ class ChatController extends Controller
             Socket::broadcast('send:room:orders', $chat->toArray());
             $decoded_message = json_decode($chat->chat_meta);
             $msg_body = $decoded_message->message;
-            $this->hook()->notifications($request,[
+            $this->hook()->chat_notifications($request,[
                 "consumer_user_id" => $chat->receiver_id,
                 "provider_user_id" => $chat->sender_id,
                 "order_id" => $chat->order_id,

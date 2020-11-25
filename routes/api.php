@@ -29,7 +29,6 @@ Route::post("/register", [AuthController::class, "register"]);
 Route::post("/login", [AuthController::class, "login"]);
 Route::post("/verify-otp", [AuthController::class, "verifyOTP"]);
 Route::post("/resend-otp", [AuthController::class, "resendOTP"]);
-Route::post("/hook/notifications", [Hook::class, "notifications"]);
 Route::post("/hook/otp", [Hook::class, "otp"]);
 Route::get("/chat", [ChatController::class, "getConvo"]);
 Route::post("/chat", [ChatController::class, "sendMessage"]);
@@ -55,3 +54,4 @@ Route::get("/order/{order_id}", [OrderController::class, "orderInfo"]);
 Route::post("/accept-order", [OrderController::class, "acceptOrder"]);
 
 Route::get("/notifications", [Hook::class, "getNotifications"]);
+Route::post("/seen", [Hook::class, "seen"]);

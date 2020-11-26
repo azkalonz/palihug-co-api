@@ -46,12 +46,12 @@ Route::get("/cart", [CartController::class, "getCart"]);
 Route::post("/cart", [CartController::class, "setCart"]);
 Route::delete("/cart", [CartController::class, "removeCart"]);
 
-Route::post("/checkout", [OrderController::class, "createOrder"]);
 
 Route::get("/orders/{user_type}", [OrderController::class, "getOrder"]);
 Route::get("/order/{order_id}", [OrderController::class, "orderInfo"]);
 
-Route::post("/accept-order", [OrderController::class, "acceptOrder"]);
+Route::post("/checkout", [OrderController::class, "createOrder"]);
+Route::post("/order", [OrderController::class, "updateOrder"]);
 
 Route::get("/notifications", [Hook::class, "getNotifications"]);
 Route::post("/seen", [Hook::class, "seen"]);

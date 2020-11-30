@@ -29,14 +29,34 @@ class Hook extends Controller
     {
         return $this->authenticate()->http($request, function ($request, $cred) {
             if(!isset($request->count)){
-                $notification = DB::select("select concat(provider.user_fname,' ',provider.user_lname) as provider_name, notifications.* from notifications inner join users as provider on provider.user_id = notifications.provider_user_id where notifications.noti_id in (select max(noti_id) from notifications where consumer_user_id = ? and provider_user_id = provider.user_id)",[$cred->user_id]);
+                $notification = DB::select("select concat(provider.user_fname,' ',provider.user_lname) as provider_name,n1.* from notifications as n1
+                inner join users as provider on provider.user_id = n1.provider_user_id
+                where n1.order_id
+                in (
+                  select DISTINCT(order_id) from notifications as n2
+                  where 
+                  consumer_user_id = ?
+                )
+                and
+                  n1.noti_id
+                  in (
+                    select max(noti_id) from notifications as n3
+                    where n3.order_id = n1.order_id and n1.consumer_user_id = ? and n3.provider_user_id = n1.provider_user_id
+                  )",[$cred->user_id,$cred->user_id]);
                 return $notification;
             }
             else 
+               { 
+                $cart_count = Cart::where("user_id","=",$cred->user_id)->get(["total_items"])->first();   
+                if($cart_count){
+                    $cart_count = $cart_count->toArray()['total_items'];
+                } else {
+                    $cart_count = 0;
+                }
                 return [
                     "notifications"=>Notification::where("consumer_user_id", "=", $cred->user_id)->where("viewed","=",0)->get()->count(),
-                    "cart"=>Cart::where("user_id","=",$cred->user_id)->get(["total_items"])->first()->toArray()['total_items']
-                ];
+                    "cart"=>$cart_count
+                ];}
         });
     }
 

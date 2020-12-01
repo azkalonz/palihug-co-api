@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Chat;
 use App\Models\Order;
 use App\Models\OrderDetail;
+use App\PhpMailer\EmailTemplate;
 use App\Socket\Socket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,7 @@ class OrderController extends Controller
             $order->success = true;
             $this->createOrderDetails($request,$order->order_id);
             Socket::broadcast("order:new",$order->toArray());
+            $this->orderUpdateHook($request,$order,false);
             return $order;
         });
     }
@@ -66,13 +68,18 @@ class OrderController extends Controller
                 $order = $order->get()->first();
                 $order_details = OrderDetail::where("order_id","=",$request->order_id)->get();
                 $order->products = $order_details;
-                $this->orderUpdateHook($request,$order);
+                $this->orderUpdateHook($request,$order,true);
                 return $order;
             }
         });
     }
-    public function orderUpdateHook($request,$order){
-        return $this->authenticate()->http($request, function($request, $cred, $order) {
+    public function orderUpdateHook($request,$order,$is_driver_triggered){
+        return $this->authenticate()->http($request, function($request, $cred, $params) {
+            $order = $params['order'];
+            $is_driver_triggered = $params['is_driver_triggered'];
+            if(!$is_driver_triggered){
+                $order['status'] = 'created';
+            }
             $msg_body = DB::table('order_msg_templates')->where("order_status","=",$order['status'])->first();
             $msg_body = $msg_body->message;
             $customer = DB::table("users")->where("user_id","=",$order['consumer_user_id'])->first();
@@ -90,30 +97,37 @@ class OrderController extends Controller
                 '$order_total' => 'PHP '.$order['total']
             );
             $msg_body = strtr($msg_body, $params);
-            $chat = Chat::create([
-                'order_id'=>$order['order_id'], 
-                'receiver_id'=>$order['consumer_user_id'], 
-                'sender_id'=>$cred->user_id, 
-                'chat_meta'=>json_encode([
-                    "message"=>$msg_body,
-                    "type"=>"text"
-                ])
-            ]);
-            Socket::broadcast('send:room:orders', $chat->toArray());
-            return $this->hook()->chat_notifications($request,[
-                "consumer_user_id" => $chat->receiver_id,
-                "provider_user_id" => $chat->sender_id,
-                "order_id" => $chat->order_id,
-                "notif_action" => json_encode([
-                    "pathname"=>"/chat/$chat->order_id"
-                ]),
-                "notif_meta"=>json_encode([
-                    "title" => "Message for order #$chat->order_id",
-                    "body" => $msg_body
-                ]),
-                "notif_type"=>"chat"
-            ]);
-        },$order->toArray());
+            $otp_email = new EmailTemplate(false);
+            $otp_email = $otp_email->OrderUpdateTemplate($customer->user_email, "Update for your order #".$order['order_id'],$msg_body,$order_detail,$order);
+
+            if(!$is_driver_triggered){
+                return true;
+            } else {
+                $chat = Chat::create([
+                    'order_id'=>$order['order_id'], 
+                    'receiver_id'=>$order['consumer_user_id'], 
+                    'sender_id'=>$cred->user_id, 
+                    'chat_meta'=>json_encode([
+                        "message"=>$msg_body,
+                        "type"=>"text"
+                    ])
+                ]);
+                Socket::broadcast('send:room:orders', $chat->toArray());
+                return $this->hook()->chat_notifications($request,[
+                    "consumer_user_id" => $chat->receiver_id,
+                    "provider_user_id" => $chat->sender_id,
+                    "order_id" => $chat->order_id,
+                    "notif_action" => json_encode([
+                        "pathname"=>"/chat/$chat->order_id"
+                    ]),
+                    "notif_meta"=>json_encode([
+                        "title" => "Message for order #$chat->order_id",
+                        "body" => $msg_body
+                    ]),
+                    "notif_type"=>"chat"
+                ]);
+            }
+        },["order"=>$order->toArray(),"is_driver_triggered"=>$is_driver_triggered]);
     }
     
     public function orderInfo(Request $request,$order_id=null){

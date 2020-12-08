@@ -96,6 +96,9 @@ class OrderController extends Controller
                 '$order' => $order_text,
                 '$order_total' => 'PHP '.$order['total']
             );
+            if($order['est_total']){
+                $params['$order_total'] = '~ PHP '.$order['est_total'];
+            }
             $msg_body = strtr($msg_body, $params);
             $otp_email = new EmailTemplate(false);
             $otp_email = $otp_email->OrderUpdateTemplate($customer->user_email, "Update for your order #".$order['order_id'],$msg_body,$order_detail,$order);

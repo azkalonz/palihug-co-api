@@ -43,6 +43,7 @@ class AuthController extends Controller
                 $user->default_address = $user->default_address[0];
             }
             $user->user_type = DB::select("select * from user_types where user_type_id = ?",[$user->user_type])[0];
+            unset($user->user_token);
             return $isJson ? response()->json($user) : $user;
         } else {
             $err = '["message" => "Invalid token",
@@ -163,13 +164,13 @@ class AuthController extends Controller
             $user->user_token = $this->generateKey('0123456789', 4);
             $user->save();
 
-            Socket::broadcast('otp', ['user_email' => $user->user_email, 'duration' => 120000]);
+            Socket::broadcast('otp', ['user_email' => $user->user_email, 'duration' => 120000, 'start_date'=>date("F d, Y h:i:s A")]);
 
             $otp_email = new EmailTemplate(false);
             $otp_email = $otp_email->OTPVerificationTemplate($user->user_email, $user->user_token);
             $user->user_type = $user->user_type ? $user->user_type:1;
             $user->user_type = DB::select("select * from user_types where user_type_id = ?",[$user->user_type])[0];
-
+            unset($user->user_token);
             if ($otp_email['status']) {
                 return response()->json([
                     "status" => true,
@@ -189,8 +190,10 @@ class AuthController extends Controller
 
         $otp_email = new EmailTemplate(false);
         $otp_email = $otp_email->OTPVerificationTemplate($request->user_email, $user->user_token);
+        $fake_token = ($user['user_token'] * 1234);
+        $user->user_token = $fake_token;
         if ($otp_email['status']) {
-            Socket::broadcast('otp', ['user_email' => $user->user_email, 'duration' => 120000]);
+            Socket::broadcast('otp', ['user_email' => $user->user_email, 'duration' => 120000,'start_date'=>date("F d, Y h:i:s A")]);
             return response()->json([
                 "status" => true,
                 "user" => $user,
@@ -219,7 +222,7 @@ class AuthController extends Controller
                 $token = $this->generateAuthToken($user['user_id'], $user['user_email']);
                 $request->user_token = $token;
                 return $this->http($request, function ($request, $cred) {
-                    $param = $request->all();
+                    $cred->user_token = $request->user_token;
                     return $cred;
                 });
             }

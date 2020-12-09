@@ -6,6 +6,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Hook;
 use App\Http\Controllers\MerchantController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
@@ -55,3 +56,5 @@ Route::post("/order", [OrderController::class, "updateOrder"]);
 
 Route::get("/notifications", [Hook::class, "getNotifications"]);
 Route::post("/seen", [Hook::class, "seen"]);
+
+Route::get("/reports/sales", [ReportsController::class,"getSalesCount"]);

@@ -10,4 +10,8 @@ class OrderDetail extends Model
     use HasFactory;
     protected $table = "order_details";
     protected $fillable = ["prod_id","order_id","order_qty","order_total","merchant_id","product_meta"];
+    public function scopeExclude($query, $value = []) 
+    {
+        return $query->select(array_diff($this->columns, (array) $value));
+    }
 }

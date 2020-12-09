@@ -43,9 +43,9 @@ class ReportsController extends Controller
             if($cred->user_type->name === "merchant"){
                 $merchant = Merchant::where("user_id",$cred->user_id)->get()->first();
                 if($merchant){
-                    $from = date($request->query("from","Y-m-d"));
+                    $from = date($request->query("from","Y-m-1"));
                     if(!($to = date($request->to))){
-                        $to = date('Y-m-d', strtotime("+30 days"));
+                        $to = date('Y-m-1', strtotime("+30 days"));
                     }
                     $return = [
                         "gross_sales"=>[],
@@ -54,8 +54,9 @@ class ReportsController extends Controller
                         "sales_by_product"=>[]
                     ];
                     foreach($return as $key => $value){
-                        if($request->query($key)!=null){
-                            $return[$key] = $this->getSale($key,$merchant,$from,$to);
+                        if($request->query($key)!=null || $request->all == "true"){
+                            $sales = $this->getSale($key,$merchant,$from,$to);
+                            $return[$key] = $sales==null?false:$sales;
                         }  else {
                             unset($return[$key]);
                         }

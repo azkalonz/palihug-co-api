@@ -58,3 +58,4 @@ Route::get("/notifications", [Hook::class, "getNotifications"]);
 Route::post("/seen", [Hook::class, "seen"]);
 
 Route::get("/reports/sales", [ReportsController::class,"getSalesCount"]);
+Route::get("/reports/month-sales", [ReportsController::class,"getMonthSalesSummary"]);

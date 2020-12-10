@@ -87,6 +87,14 @@ class OrderController extends Controller
             $user_type = $cred->user_type->name;
             if($user_type!=='customer'){
                 $order = Order::where("order_id","=",$request->order_id);
+                if($order->get()->first()->provider_user_id){
+                    if($order->get()->first()->provider_user_id != $cred->user_id){
+                        return [
+                            "error"=> true,
+                            "message"=> "[Unauthorized access] Order is already accepted by other user."
+                        ];
+                    }
+                }
                 $order->update(array_merge($request->except(["token"]),[
                     "provider_user_id"=>$cred->user_id,
                     ]));

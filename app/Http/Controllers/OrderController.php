@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Chat;
+use App\Models\Merchant;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\PhpMailer\EmailTemplate;
@@ -46,9 +47,23 @@ class OrderController extends Controller
         return $this->authenticate()->http($request,function($request,$cred){
             if($request->user_type == "customer")
                 return Order::where("consumer_user_id","=",$cred->user_id)->get();
-            else if($request->user_type == "driver")
+                else if($request->user_type == "driver")
                 return Order::where("provider_user_id","=",$cred->user_id)->orWhere("provider_user_id","=",null)->get();
+                else if($request->user_type == "merchant")
+                return $this->getMerchantTransactions($cred);
         });
+    }
+    public function getMerchantTransactions($cred){
+        $merchant = Merchant::where("user_id",$cred->user_id)->get()->first();
+        return OrderDetail::join("orders as o","o.order_id","=","order_details.order_id")
+        ->leftJoin("users as u1","u1.user_id","=","o.provider_user_id")
+        ->leftJoin("users as u2","u2.user_id","=","o.consumer_user_id")
+        ->selectRaw("CONCAT(u1.user_fname,' ',u1.user_lname) as provider_name,
+        CONCAT(u2.user_fname,' ',u2.user_lname) as consumer_name,
+            order_details.*, o.*")
+        ->groupBy("order_details.order_id")
+        ->where("order_details.merchant_id",$merchant->merch_wp_id)
+        ->get();
     }
     public function updateOrder(Request $request){
         $validation = Validator::make($request->all(), [

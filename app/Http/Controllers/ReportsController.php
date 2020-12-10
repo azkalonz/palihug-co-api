@@ -13,26 +13,36 @@ class ReportsController extends Controller
     public function getSale($type,$merchant,$from,$to,$request){
         switch($type){
             case "gross_sales": 
-                $sales = DB::select('SELECT SUM(order_total * order_qty) as gross_sales from 
-                order_details WHERE merchant_id = ? AND created_at BETWEEN CAST(? as DATE) AND CAST(? as DATE)'
+                $sales = DB::select('SELECT SUM(order_total) as gross_sales from 
+                order_details WHERE merchant_id = ? AND created_at BETWEEN CAST(? as DATE) AND CAST(? as DATE) and order_details.order_id IN (select order_id from orders where orders.order_id = order_details.order_id and orders.status = "received")'
                 , [$merchant->merch_wp_id,$from,$to]);
                 return $sales[0]->gross_sales;
             break;
             case "total_items": 
                 return OrderDetail::where("merchant_id",$merchant->merch_wp_id)
                 ->whereBetween('created_at',[$from,$to])
+                ->whereRaw("order_details.order_id IN (select order_id from orders where orders.order_id = order_details.order_id and orders.status = 'received')")
                 ->groupBy("merchant_id")
                 ->sum("order_qty");
             break;
             case "total_orders": 
-                return OrderDetail::distinct("order_id")
-                ->where("merchant_id",$merchant->merch_wp_id)
-                ->whereBetween('created_at',[$from,$to])
-                ->count();
+                $queries = ["received"=>0,"pending"=>0,"all"=>0,"cancelled"=>0,"receiving"=>0,"processing"=>0];
+                foreach($queries as $q => $value){
+                    $filter = "and orders.status = '$q'";
+                    if($q=="all")
+                        $filter = "";
+                    $queries[$q] = OrderDetail::distinct("order_id")
+                    ->where("merchant_id",$merchant->merch_wp_id)
+                    ->whereBetween('created_at',[$from,$to])
+                    ->whereRaw("order_details.order_id IN (select order_id from orders where orders.order_id = order_details.order_id $filter)")
+                    ->count();
+                }
+                return $queries;
             break;
             case "sales_by_product": 
                 return OrderDetail::where("merchant_id",$merchant->merch_wp_id)
                 ->whereBetween('created_at',[$from,$to])
+                ->whereRaw("order_details.order_id IN (select order_id from orders where orders.order_id = order_details.order_id and orders.status = 'received')")
                 ->selectRaw('product_meta, sum(order_qty) as total_items')
                 ->groupBy(["prod_id","product_meta"])
                 ->get();

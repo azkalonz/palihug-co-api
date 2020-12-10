@@ -59,3 +59,5 @@ Route::post("/seen", [Hook::class, "seen"]);
 
 Route::get("/reports/sales", [ReportsController::class,"getSalesCount"]);
 Route::get("/reports/month-sales", [ReportsController::class,"getMonthSalesSummary"]);
+
+Route::get("/export/orders", [OrderController::class,"export"]);

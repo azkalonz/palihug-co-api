@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\TransactionExport;
 use App\Models\Chat;
 use App\Models\Merchant;
 use App\Models\Order;
@@ -10,10 +11,20 @@ use App\PhpMailer\EmailTemplate;
 use App\Socket\Socket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 use \Validator;
 
 class OrderController extends Controller
 {
+    public function export(Request $request){
+        return $this->authenticate()->http($request,function($request,$cred){
+            return Excel::download(new TransactionExport(
+                $this->getMerchantTransactions($cred)
+                ->makeHidden(['product_meta','delivery_info','consumer_user_id','provider_user_id','merchant_id','order_detail_id','order_total','order_qty','service_id','payment_id','prod_id','date_confirmed','created_at','updated_at'])
+            ), 'Transactions'.date("-Y-m-d h:i:s").'.xlsx');
+
+        });
+    }
     public function createOrder(Request $request){
         $validation = Validator::make($request->all(), [
             "consumer_user_id" => "required",
@@ -58,9 +69,9 @@ class OrderController extends Controller
         return OrderDetail::join("orders as o","o.order_id","=","order_details.order_id")
         ->leftJoin("users as u1","u1.user_id","=","o.provider_user_id")
         ->leftJoin("users as u2","u2.user_id","=","o.consumer_user_id")
-        ->selectRaw("CONCAT(u1.user_fname,' ',u1.user_lname) as provider_name,
+        ->selectRaw(" o.*, CONCAT(u1.user_fname,' ',u1.user_lname) as provider_name,
         CONCAT(u2.user_fname,' ',u2.user_lname) as consumer_name,
-            order_details.*, o.*")
+            order_details.*")
         ->groupBy("order_details.order_id")
         ->where("order_details.merchant_id",$merchant->merch_wp_id)
         ->get();
@@ -74,7 +85,7 @@ class OrderController extends Controller
         }
         return $this->authenticate()->http($request, function($request,$cred){
             $user_type = $cred->user_type->name;
-            if($user_type==='driver'){
+            if($user_type!=='customer'){
                 $order = Order::where("order_id","=",$request->order_id);
                 $order->update(array_merge($request->except(["token"]),[
                     "provider_user_id"=>$cred->user_id,
@@ -156,7 +167,7 @@ class OrderController extends Controller
                 $order_details = OrderDetail::where("order_id","=",$request->order_id)->get();
                 $order->products = $order_details;
                 $user_type = $cred->user_type->name;
-                if($user_type == "driver"){
+                if($user_type == "driver" || $user_type == "merchant" || $user_type == "admin"){
                     return response()->json($order);
                 } else if($cred->user_id == $order->consumer_user_id){
                     return response()->json($order);

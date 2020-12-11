@@ -129,7 +129,7 @@ class OrderController extends Controller
                 '$driver' => $cred->user_fname.' '.$cred->user_lname,
                 '$order_num' => $order['order_id'],
                 '$order' => $order_text,
-                '$order_total' => 'PHP '.$order['total']
+                '$order_total' => 'PHP '.((float)$order['total']+(float)$order['delivery_fee'])
             );
             if($order['est_total']){
                 $params['$order_total'] = '~ PHP '.$order['est_total'];

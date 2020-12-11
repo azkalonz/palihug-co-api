@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Merchant;
 use App\WC\Api;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,14 +53,34 @@ class MerchantController extends Controller
             return response()->json([
                 "merchant" => $this->all($merch_id)->original,
                 "categories" => $categories,
-                "products" => $products,
+                "products" => $this->injectMerchantModel($products),
             ]);
         }
     }
-
+    public function injectMerchantModel($products){
+        $stores = [];
+        $flatten_stores = [];
+        foreach($products as $s){
+            array_push($stores,$s->store->vendor_id);
+        }
+        $stores = array_unique($stores);
+        foreach($stores as $store){
+            array_push($flatten_stores,$store);
+        }
+        $merchant = [];
+        $merchants = Merchant::whereIn("merch_wp_id",$flatten_stores)->get();
+        foreach($merchants as $m){
+            $merchant[$m->merch_wp_id] = $m;
+        }
+        foreach($products as $s){
+            $s->merchant = $merchant[$s->store->vendor_id];
+        }
+        return $products;
+    }
     public function productArchive(Request $request)
     {
-        return Api::wp("wc/v3")->get("products", $request->all());
+        $return = Api::wp("wc/v3")->get("products", $request->all());
+        return $this->injectMerchantModel($return);
     }
 
 }

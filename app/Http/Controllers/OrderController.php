@@ -32,6 +32,7 @@ class OrderController extends Controller
             "payment_id" => "required",
             "total" => "required",
             "delivery_info" => "required",
+            "delivery_fee"=>"required"
         ]);
         if ($validation->fails()) {
             return $validation->messages();

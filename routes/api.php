@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\DeliveryFeeController;
 use App\Http\Controllers\Hook;
 use App\Http\Controllers\MerchantController;
 use App\Http\Controllers\OrderController;
@@ -61,3 +62,5 @@ Route::get("/reports/sales", [ReportsController::class,"getSalesCount"]);
 Route::get("/reports/month-sales", [ReportsController::class,"getMonthSalesSummary"]);
 
 Route::get("/export/orders", [OrderController::class,"export"]);
+
+Route::get("/fee", [DeliveryFeeController::class,"getFee"]);

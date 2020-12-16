@@ -36,7 +36,11 @@ class EmailTemplate extends SMTPCon {
    }
    public function OrderUpdateTemplate($user_email,$contact_subject,$msg_body,$order_detail,$order){
     if($this->is_connected_to_smtp){
-        $order_table = '<table border="1" style="border-collapse: collapse">';
+        $order_total = (float)$order['total']+(float)$order['delivery_fee'];
+        $order_total = sprintf('%.02F', $order_total);
+        $delivery_info = json_decode($order['delivery_info']);
+        $order_table = "<h4>Summary</h4>";
+        $order_table .= '<table border="1" style="border-collapse: collapse">';
         $order_table .= '<tr>';
         $order_table .= '<th></th>';
         $order_table .= '<th>Product Name</th>';
@@ -55,12 +59,23 @@ class EmailTemplate extends SMTPCon {
             $order_table .= "</tr>";
         }
         $order_table .= '<tr>';
+        $order_table .= '<td align="right" colspan="4" style="padding: 10px">Delivery Fee</td>';
+        $order_table .= '<td style="padding: 10px"><b>Php '.sprintf('%.02F',(float)$order['delivery_fee']).'</b></td>';
+        $order_table .= '</tr>';
+        $order_table .= '<tr>';
         $order_table .= '<td align="right" colspan="4" style="padding: 10px">Grand Total</td>';
-        $order_table .= '<td style="padding: 10px"><b>Php '.$order['total'].'</b></td>';
+        $order_table .= '<td style="padding: 10px"><b>Php '.$order_total.'</b></td>';
         $order_table .= '</tr>';
         $order_table .= '</table>';
+        $delivery_info = "
+        <hr/>
+        <h4>Delivery Info</h4>
+        <p><b>Address: </b>{$delivery_info->address->place_name}</p>
+        <p><b>Contact: </b>{$delivery_info->contact->contact}</p>
+        <p><b>Name: </b>{$delivery_info->contact->name}</p>
+        <hr/>";
         if(sizeof($order_detail)){
-            $msg_body .= "</br></br><h3>Order Details</h3>".$order_table."</br></br>";
+            $msg_body .= "</br></br><h3>Order Details</h3>$delivery_info$order_table</br></br>";
         }
         $msg_body .= '<a href="http://localhost:3000/orders/'.$order['order_id'].'" style="padding: 13px; color: #fff; text-decoration: none; font-weight: bold; border-radius: 4px;background: #d92e45;display: inline-block;margin-top: 16px;">View Order</a>';
         $args = [

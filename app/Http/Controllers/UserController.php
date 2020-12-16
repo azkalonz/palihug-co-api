@@ -3,12 +3,54 @@
 namespace App\Http\Controllers;
 
 use App\Models\Address;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use \Validator;
 
 class UserController extends Controller
 {
+    public function getUsers(Request $request){
+        return $this->authenticate()->http($request, function ($request, $cred) {
+            if($cred->user_type->name == "admin"){
+                return User::where("user_id","!=",$cred->user_id)->get();
+            } 
+            return [];
+        });
+    }
+    public function updateUser(Request $request){
+        $validation = Validator::make($request->all(), [
+            "user_id" => "required",
+        ]);
+        if ($validation->fails()) {
+            return $validation->messages();
+        }
+        return $this->authenticate()->http($request, function ($request, $cred) {
+            if($cred->user_type->name == "admin"){
+                $user = User::where("user_id",$request->user_id);
+                $user->update($request->except(["token"]));
+                return $user->get()->first();
+            } else {
+                return ["error"=>"Forbidden"];
+            }
+        });
+    }
+    public function deleteUser(Request $request){
+        $validation = Validator::make($request->all(), [
+            "user_id" => "required",
+        ]);
+        if ($validation->fails()) {
+            return $validation->messages();
+        }
+        return $this->authenticate()->http($request, function ($request, $cred) {
+            if($cred->user_type->name == "admin"){
+                User::where("user_id",$request->user_id)->delete();
+                return ["success"=>true];
+            } else {
+                return ["error"=>"Forbidden"];
+            }
+        });
+    }
     public function addAddress(Request $request)
     {
         $validation = Validator::make($request->all(), [

@@ -143,26 +143,35 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $validateUser = $this->validateUser($request, [
+        $req = [
             "user_fname" => ['required', 'string', 'min:2', new NameCheck()],
             "user_lname" => ['required', 'string', 'min:2', new NameCheck()],
             "user_email" => ['required', 'email', 'unique:users'],
             "user_password" => ['required', 'string', 'min:6'],
-            "user_agree" => ['accepted'],
-        ]);
+        ];
+        if($request->token){
+            $client = User::where("user_token",$request->token)->get()->first();
+        }
+        if(!isset($client)){
+            $req = array_merge($req,["user_agree" => ['accepted']]);
+        }
+        $validateUser = $this->validateUser($request, $req);
         if ($validateUser->fails()) {
             return $validateUser->messages();
         } else {
-            $user = new User();
-            $user->user_fname = $request->user_fname;
-            $user->user_lname = $request->user_lname;
-            $user->user_email = $request->user_email;
-            $user->user_password = password_hash($request->user_password, PASSWORD_DEFAULT);
-            $user->user_status = 'Unverified';
-            $user->user_agree = '1';
-            $user->is_first_logon = 0;
-            $user->user_token = $this->generateKey('0123456789', 4);
-            $user->save();
+            $user = User::create(array_merge($request->except(["token","is_admin"]),[
+                "user_token"=>$this->generateKey('0123456789', 4),
+                "user_password"=>password_hash($request->user_password, PASSWORD_DEFAULT)
+            ]));
+            
+            if($request->is_admin){
+                $this->generateAuthToken($user->id, $user->user_email);
+                $user = User::where("user_id",$user->id)->get()->first()->toArray();
+                return response()->json([
+                    "user" => $user,
+                ]);
+            }
+            
 
             Socket::broadcast('otp', ['user_email' => $user->user_email, 'duration' => 120000, 'start_date'=>date("F d, Y h:i:s A")]);
 

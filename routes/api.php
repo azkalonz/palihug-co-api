@@ -64,3 +64,7 @@ Route::get("/reports/month-sales", [ReportsController::class,"getMonthSalesSumma
 Route::get("/export/orders", [OrderController::class,"export"]);
 
 Route::get("/fee", [DeliveryFeeController::class,"getFee"]);
+
+Route::get("/users", [UserController::class,"getUsers"]);
+Route::delete("/user", [UserController::class,"deleteUser"]);
+Route::post("/user", [UserController::class,"updateUser"]);

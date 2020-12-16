@@ -25,24 +25,54 @@ class Hook extends Controller
         }, $params);
     }
 
+    public function update_notifications(Request $request)
+    {
+        return $this->authenticate()->http($request, function($request, $cred) {
+            if($cred->user_type->name == "admin"){
+                $notification = Notification::create(array_merge($request->all(),[
+                    "provider_user_id"=>$cred->user_id
+                ]));
+                $notification = $notification->toArray();
+                $u = DB::select("select * from users where user_id = ?",[$cred->user_id]);
+                $notification['provider_name'] = $u[0]->user_fname.' '.$u[0]->user_lname;
+                Socket::broadcast("notifications:update", $notification);
+                return $notification;
+            } else {
+                return ["error"=>true,"message"=>"Unauthorized"];
+            }
+        });
+    }
+
     public function getNotifications(Request $request)
     {
         return $this->authenticate()->http($request, function ($request, $cred) {
             if(!isset($request->count)){
-                $notification = DB::select("select concat(provider.user_fname,' ',provider.user_lname) as provider_name,n1.* from notifications as n1
-                inner join users as provider on provider.user_id = n1.provider_user_id
-                where n1.order_id
-                in (
-                  select DISTINCT(order_id) from notifications as n2
-                  where 
-                  consumer_user_id = ?
-                )
-                and
-                  n1.noti_id
-                  in (
-                    select max(noti_id) from notifications as n3
-                    where n3.order_id = n1.order_id and n1.consumer_user_id = ? and n3.provider_user_id = n1.provider_user_id
-                  )",[$cred->user_id,$cred->user_id]);
+                $notification = DB::select("select 
+                concat(provider.user_fname,' ',provider.user_lname) as provider_name,
+                n1.* from notifications as n1
+                inner join 
+                    users as provider on provider.user_id = n1.provider_user_id
+                where 
+                    (
+                        n1.order_id
+                        in (
+                        select DISTINCT(order_id) from notifications as n2
+                        where 
+                        consumer_user_id = ?
+                        )
+                    and n1.noti_id
+                        in (
+                            select max(noti_id) from notifications as n3
+                            where n3.order_id = n1.order_id and n1.consumer_user_id = ? and n3.provider_user_id = n1.provider_user_id
+                        )
+                        ) 
+                        or (n1.consumer_user_id = -1 or 
+                        n1.noti_id in (
+                                select max(noti_id) from notifications
+                                where consumer_user_id = ? and order_id = -1
+                            )
+                        
+                        )",[$cred->user_id,$cred->user_id,$cred->user_id]);
                 return $notification;
             }
             else 

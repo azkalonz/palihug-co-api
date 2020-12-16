@@ -66,5 +66,8 @@ Route::get("/export/orders", [OrderController::class,"export"]);
 Route::get("/fee", [DeliveryFeeController::class,"getFee"]);
 
 Route::get("/users", [UserController::class,"getUsers"]);
+Route::get("/users/{keyword}", [UserController::class,"search"]);
 Route::delete("/user", [UserController::class,"deleteUser"]);
 Route::post("/user", [UserController::class,"updateUser"]);
+
+Route::post("/notifications",[Hook::class,"update_notifications"]);

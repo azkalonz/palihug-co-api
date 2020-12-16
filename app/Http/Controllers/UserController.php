@@ -35,6 +35,16 @@ class UserController extends Controller
             }
         });
     }
+    public function search(Request $request,$keyword=null){
+        if($keyword==null) return [];
+        $request->keyword = $keyword;
+        return $this->authenticate()->http($request, function ($request, $cred) {
+            return User::where("user_fname", "like", "%{$request->keyword}%")
+                        ->orWhere("user_lname", "like", "%{$request->keyword}%")
+                        ->get();
+        });
+    }
+
     public function deleteUser(Request $request){
         $validation = Validator::make($request->all(), [
             "user_id" => "required",

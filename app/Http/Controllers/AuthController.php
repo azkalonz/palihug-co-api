@@ -19,7 +19,6 @@ class AuthController extends Controller
         $randStr = substr(str_shuffle($str), 0, $length);
         return $randStr;
     }
-
     public function auth(Request $request, $isJson = true)
     {
         if (empty($_GET['token'])) {

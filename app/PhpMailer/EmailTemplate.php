@@ -24,7 +24,7 @@ class EmailTemplate extends SMTPCon {
            $args = [
                 "address"=>$user_email,
                 "contact_subject"=>"Palihug.co OTP",
-                "mail_content"=>"<h2>Your OTP code is </h2><p>{$otp_pin}</p>",
+                "mail_content"=>"<img src='https://i.imgur.com/L7FNoWx_d.png?maxwidth=760&fidelity=grand' width='160' alt='ESGO'/><br/><hr/><br/><h2>Your OTP code is </h2><p>{$otp_pin}</p>",
            ];
            return $this->sendHTMLContext($args);
        } else {
@@ -77,6 +77,7 @@ class EmailTemplate extends SMTPCon {
         if(sizeof($order_detail)){
             $msg_body .= "</br></br><h3>Order Details</h3>$delivery_info$order_table</br></br>";
         }
+        $msg_body = "<img src='https://i.imgur.com/L7FNoWx_d.png?maxwidth=760&fidelity=grand' width='160' alt='ESGO'/><br/><hr/><br/>".$msg_body;
         $msg_body .= '<a href="http://localhost:3000/orders/'.$order['order_id'].'" style="padding: 13px; color: #fff; text-decoration: none; font-weight: bold; border-radius: 4px;background: #d92e45;display: inline-block;margin-top: 16px;">View Order</a>';
         $args = [
              "address"=>$user_email,

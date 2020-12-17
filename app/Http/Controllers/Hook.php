@@ -10,6 +10,7 @@ use App\Models\Cart;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use \Validator;
 
 class Hook extends Controller
 {
@@ -27,6 +28,14 @@ class Hook extends Controller
 
     public function update_notifications(Request $request)
     {
+        $validation = Validator::make($request->all(), [
+            'notif_meta' => ['required'],
+            'notif_type' => ['required'],
+            'consumer_user_id' => ['required'],
+        ]);
+        if ($validation->fails()) {
+            return $validation->messages();
+        }
         return $this->authenticate()->http($request, function($request, $cred) {
             if($cred->user_type->name == "admin"){
                 $notification = Notification::create(array_merge($request->all(),[
@@ -71,7 +80,6 @@ class Hook extends Controller
                                 select max(noti_id) from notifications
                                 where consumer_user_id = ? and order_id = -1
                             )
-                        
                         )",[$cred->user_id,$cred->user_id,$cred->user_id]);
                 return $notification;
             }
